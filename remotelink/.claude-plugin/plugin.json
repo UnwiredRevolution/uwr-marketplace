@@ -1,0 +1,10 @@
+{
+  "name": "remotelink",
+  "version": "0.1.0",
+  "description": "Domain knowledge and MCP integration for RemoteLink, a script execution and endpoint management platform.",
+  "author": {
+    "name": "Unwired Revolution",
+    "email": "info@unwiredremotelink.com",
+    "url": "https://www.unwiredremotelink.com/"
+  }
+}

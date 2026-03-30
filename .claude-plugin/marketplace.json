@@ -1,0 +1,26 @@
+{
+  "name": "uwr-marketplace",
+  "owner": {
+    "name": "Unwired Revolution",
+    "email": "info@unwiredremotelink.com"
+  },
+  "metadata": {
+    "description": "Official plugins for RemoteLink by Unwired Revolution",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "remotelink",
+      "source": "./remotelink",
+      "description": "Domain knowledge and MCP integration for RemoteLink, a script execution and endpoint management platform.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Unwired Revolution",
+        "email": "info@unwiredremotelink.com"
+      },
+      "homepage": "https://www.unwiredremotelink.com/",
+      "keywords": ["remotelink", "mcp", "endpoint-management", "script-execution"],
+      "category": "integration"
+    }
+  ]
+}
