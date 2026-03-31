@@ -56,6 +56,8 @@ Things that bite every agent on first encounter:
 | `Groups` → `Clients` | **`ClientGroupBases`** join table | Group membership is in `ClientGroupBases` (columns: `GroupBase_Id`, `Client_Id`), not `ClientGroups`. |
 | Reading `Tasks.Actions` via JOIN | **`SerializedScript`** column | Task→Action link is a JSON array in `SerializedScript`, not a relational FK. Each element has `_actionId` (GUID) and parameter values. For reverse lookup (tasks using an action), use `TaskActionVersionUsages`. |
 | `Result` / `Status` columns as strings | **Always integers** | All Result/Status columns are ints. Never assume meanings from column names — check actual values via `get_doc` or sample data. |
+| `ClientId` on a join table | **`Client_Id`** (underscore) | EF6 implicit join tables (no C# entity class) use `Entity_Id` underscore convention. Explicit entities use PascalCase (`ClientId`). Common underscore tables: `ClientJobs` (`Client_Id`, `Job_Id`), `JobTasks` (`Job_Id`, `Task_Id`), `JobGroupBases`, `ClientGroupBases`, `GroupBaseTasks`. Explicit-entity tables like `ClientJobRunRecords` use `ClientId`, `JobRunRecordId`. |
+| `Operations` (SQL table) | **`Implementations`** (DbSet/search name) | The C# entity is `Implementation` with `[Table("Operations")]`. Search for "Implementations" or "Operations" — both work. |
 
 ## Hidden Tables
 
@@ -70,6 +72,7 @@ Tables the MCP won't surface through obvious searches:
 - **`execute_script` is synchronous only** — No top-level `await`. The Jint sandbox doesn't support it. All `publicApi` calls are synchronous.
 - **`ClientJobRunAttemptLogs.LogData` is varbinary** — Can't read via SQL. Use `execute_script` with `getJobRunRecord({ IncludeAttemptLogs: true })` instead.
 - **No `getTask` API** — There's no `publicApi.getTask()`. To read task content, use `query_database` on `Tasks.SerializedScript`.
+- **No `getGroups` API** — There's no `publicApi.getGroups()`. To list groups, use `query_database` on `GroupBases` (table name — see Naming Traps). Filter by `Discriminator` column: `'StaticGroup'` or `'DynamicGroup'`.
 - **Discover API methods before calling them** — Use `search` with relevant keywords to find available `publicApi` methods. Method names are camelCase (e.g., `getJobRunRecord`, not `GetJobRunRecord`).
 - **`query_database` returns max 100 rows** — Use `COUNT(*)`, `GROUP BY`, or `TOP N` to work within this limit. Check for `"truncated": true` in results.
 - **Extract only needed fields in scripts** — `log(JSON.stringify(fullResult))` can produce 700K+ characters. Select specific properties inside the script to keep output manageable.
