@@ -2,68 +2,42 @@
 name: setup
 description: >-
   This skill should be used when the user asks to "set up RemoteLink",
-  "configure RemoteLink", "connect to RemoteLink", "install RemoteLink plugin",
-  "get started with RemoteLink", or needs help setting the REMOTELINK_URL
-  environment variable. Also applies when the user reports "MCP server not
-  connecting", "REMOTELINK_URL not found", "fix RemoteLink connection", or
-  other RemoteLink MCP connection issues.
+  "configure RemoteLink", "change the RemoteLink URL", or needs to point
+  RemoteLink at a different instance in a specific project/worktree (e.g.,
+  "point RemoteLink at my local dev instance in this worktree"). Also applies
+  when the user reports "MCP server not connecting", "RemoteLink URL missing",
+  or other RemoteLink MCP connection issues.
 ---
 
 # RemoteLink Setup
 
-Configure the `REMOTELINK_URL` environment variable required by the RemoteLink MCP server.
+Claude Code prompts for the RemoteLink Admin URL when the plugin is installed or enabled and stores it under `pluginConfigs.remotelink.options.remotelink_url` in `~/.claude/settings.json`. No shell variables are involved.
 
-## Prerequisites
+## Changing the URL
 
-- A running RemoteLink instance with the MCP endpoint enabled
-- The base URL of the RemoteLink Admin site (e.g., `https://your-server.example.com`)
+Run `/plugin`, disable the RemoteLink plugin, then re-enable it to trigger the prompt again. Or edit `~/.claude/settings.json` directly and restart Claude Code.
 
-## Setup Steps
+## Per-worktree override
 
-### 1. Determine the RemoteLink URL
-
-Ask the user for their RemoteLink Admin URL. This is the base URL without any path — for example, `https://your-server.example.com` (not `https://your-server.example.com/mcp`). The plugin appends `/mcp` automatically.
-
-Before setting the variable, validate the URL: strip any trailing slash or path segments (e.g., `/mcp`, `/Admin`). The value should be just the scheme and host like `https://your-server.example.com`.
-
-### 2. Set the Environment Variable
-
-The `REMOTELINK_URL` environment variable must be available to Claude Code at startup.
-
-**Option A: Claude Code settings (recommended)**
-
-Add to the user's Claude Code settings via the `env` field in `~/.claude/settings.json`:
+`pluginConfigs` follows standard settings precedence (**Managed > CLI args > Local > Project > User**). To point at a different instance in a specific checkout — e.g., local RemoteLink for end-to-end testing — drop a `.claude/settings.local.json` at the worktree root:
 
 ```json
 {
-  "env": {
-    "REMOTELINK_URL": "https://your-server.example.com"
+  "pluginConfigs": {
+    "remotelink": {
+      "options": {
+        "remotelink_url": "https://localhost:44316"
+      }
+    }
   }
 }
 ```
 
-**Option B: Shell profile**
-
-For bash/zsh, append to the appropriate profile file (`~/.bashrc`, `~/.zshrc`, or `~/.bash_profile`):
-
-```bash
-export REMOTELINK_URL="https://your-server.example.com"
-```
-
-For PowerShell, add to `$PROFILE`:
-
-```powershell
-$env:REMOTELINK_URL = "https://your-server.example.com"
-```
-
-After setting via shell profile, restart the terminal and Claude Code.
-
-### 3. Verify Connection
-
-After setting the environment variable and restarting Claude Code, verify the MCP server connects by running `/mcp` and checking that the `remotelink` server shows as connected with its tools available (search, get_doc, query_database, execute_script).
+`settings.local.json` is gitignored by Claude Code convention. Use `settings.json` instead if the override should be committed and shared with the team. Restart Claude Code from the worktree after creating the file; verify with `/mcp`.
 
 ## Troubleshooting
 
-- **MCP server not connecting**: Verify the URL is reachable from the machine running Claude Code. Test with `curl <REMOTELINK_URL>/mcp` — it should respond (not timeout or 404).
-- **Environment variable not found**: Ensure Claude Code was restarted after setting the variable. Check with `echo $REMOTELINK_URL` in the Claude Code terminal.
-- **HTTPS certificate errors**: For self-signed certificates on internal servers, ensure the certificate is trusted by the operating system.
+- **MCP server won't connect**: `curl <remotelink_url>/mcp` — should respond, not timeout or 404.
+- **URL missing or invalid**: re-prompt via `/plugin`, or hand-edit `pluginConfigs.remotelink.options.remotelink_url`.
+- **HTTPS certificate errors**: ensure self-signed certs on internal servers are trusted by the OS.
+- **Worktree override not taking effect**: confirm the file is at `<worktree-root>/.claude/settings.local.json` (not `~/.claude/`), and that Claude Code was restarted from that directory.

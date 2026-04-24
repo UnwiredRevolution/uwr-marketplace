@@ -1,10 +1,18 @@
 {
   "name": "remotelink",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Domain knowledge and MCP integration for RemoteLink, a script execution and endpoint management platform.",
   "author": {
     "name": "Unwired Revolution",
     "email": "info@unwiredremotelink.com",
     "url": "https://www.unwiredremotelink.com/"
+  },
+  "userConfig": {
+    "remotelink_url": {
+      "type": "string",
+      "title": "RemoteLink Admin URL",
+      "description": "Base URL of your RemoteLink Admin site (e.g., https://your-server.example.com). Do not include trailing slash or /mcp — the plugin appends /mcp automatically.",
+      "required": true
+    }
   }
 }

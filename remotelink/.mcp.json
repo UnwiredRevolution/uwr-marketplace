@@ -2,7 +2,7 @@
   "mcpServers": {
     "remotelink": {
       "type": "http",
-      "url": "${REMOTELINK_URL}/mcp"
+      "url": "${user_config.remotelink_url}/mcp"
     }
   }
 }

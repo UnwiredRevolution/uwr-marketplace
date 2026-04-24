@@ -10,7 +10,7 @@ description: >-
   user encounters naming confusion (e.g., Groups vs GroupBases) or needs to
   understand the execution activity chain. Requires a connected RemoteLink MCP
   server providing search, get_doc, query_database, and execute_script tools.
-version: "0.3"
+version: "0.4"
 ---
 
 # RemoteLink Skill
@@ -22,10 +22,10 @@ Use MCP tool descriptions for parameter details and `get_doc` for live schema �
 
 - **Task** — A reusable script definition. References **Actions** by ID inside its `SerializedScript` JSON column and supplies parameters for each.
 - **Action** — A parameterized operation (run script, copy file, etc.). Tasks embed action config in `SerializedScript` JSON (each step has `_actionId` + params). For reverse lookup (find tasks by action type), use `TaskActionVersionUsages` join table.
-- **Job** — A scheduled execution plan: *when* to run a Task, *who* to run it on. Types: **Server** (server-only), **Interactive** (server+client with shared variables), **Monitor** (silent condition watcher, legacy).
+- **Job** — A scheduled execution plan: *when* to run a Task, *who* to run it on. Types: **Server** (server-only), **Interactive** (server+client with shared variables), **Monitor** (silent condition watcher).
 - **Client** — A registered endpoint. Has one or more **Agents** (ClientCredentials rows), one Primary. The agent executes Actions.
 - **Group** — A logical collection of Clients. **Static** (fixed membership) or **Dynamic** (rule-based). DB table is `GroupBases`, not `Groups`.
-- **Monitor** — Condition watcher that triggers a Job. Modern types: File, Job, Request. (Legacy Monitor Jobs predate these.)
+- **Monitor** — Condition watcher that triggers a Job. Types: File, Job, Request. Distinct from a Monitor-type Job.
 - **Alert/Event** — Passive notification record from system activity.
 - **Product** — Software title with versioned **Packages**.
 - **Patch Profile** — Windows update rules linking Patch Approvals to Groups.
@@ -62,23 +62,25 @@ Things that bite every agent on first encounter:
 
 Tables the MCP won't surface through obvious searches:
 
-- **`ClientJobRunEvents`** — Has a `Type` column with event indicators (e.g., `ClientAlreadyRunningJob`, `Failed`, `ClientConfirmTimeout`). JOIN on `ClientJobRunRecordId`. Good for quick triage — for full failure details (exceptions, stack traces), use `execute_script`/`getJobRunRecord` with `IncludeAttemptLogs: true`.
+- **`ClientJobRunEvents`** — Has a `Type` column with event indicators (e.g., `ClientAlreadyRunningJob`, `Failed`, `ClientConfirmTimeout`). JOIN on `ClientJobRunRecordId`. Good for quick triage — for full failure details (exceptions, stack traces), use `execute_script` with `await rl.publicApi.getJobRunRecord({ IncludeAttemptLogs: true })`.
 - **`UpcomingJobRuns`** — Filter `IsNextScheduledRun = 1` to get the actual next scheduled run. Without this filter, you'll also get future recovery runs.
 
 ## Tool Gotchas
 
-- **`execute_script` is for reads AND writes** — It runs JavaScript in a Jint sandbox. `getJobRunRecord` with `IncludeClientJobRunEvents: true` returns richer data than raw SQL (human-readable result strings, event traces). Essential for failure diagnosis.
-- **`execute_script` is synchronous only** — No top-level `await`. The Jint sandbox doesn't support it. All `publicApi` calls are synchronous.
-- **`ClientJobRunAttemptLogs.LogData` is varbinary** — Can't read via SQL. Use `execute_script` with `getJobRunRecord({ IncludeAttemptLogs: true })` instead.
-- **No `getTask` API** — There's no `publicApi.getTask()`. To read task content, use `query_database` on `Tasks.SerializedScript`.
-- **Discover API methods before calling them** — Use `search` with relevant keywords to find available `publicApi` methods. Method names are camelCase (e.g., `getJobRunRecord`, not `GetJobRunRecord`).
+- **`execute_script` is for reads AND writes** — It runs JavaScript in a Jint sandbox. `await rl.publicApi.getJobRunRecord({ ..., IncludeClientJobRunEvents: true })` returns richer data than raw SQL (human-readable result strings, event traces). Essential for failure diagnosis.
+- **`rl.publicApi.*` calls are async** — Scripts run inside an async IIFE, so top-level `await` works. Every `rl.publicApi.*` method returns a Promise — `await` it (or chain `.then`). Forgetting `await` yields a Promise object, not the data.
+- **Logging is via `console.*`** — `console.log` / `.debug` / `.info` / `.warn` / `.error`.
+- **`return` for data, `console.*` for diagnostics** — An explicit top-level `return` surfaces a value back to `execute_script` as its result. Prefer returning structured data over dumping it into logs; reserve `console.*` for progress and context.
+- **`ClientJobRunAttemptLogs.LogData` is varbinary** — Can't read via SQL. Use `execute_script` with `await rl.publicApi.getJobRunRecord({ IncludeAttemptLogs: true })` instead.
+- **No `getTask` API** — There's no `rl.publicApi.getTask()`. To read task content, use `query_database` on `Tasks.SerializedScript`.
+- **Discover API methods before calling them** — Use `search` with relevant keywords to find available `rl.publicApi.*` methods. Method names are camelCase (e.g., `getJobRunRecord`, not `GetJobRunRecord`).
 - **`query_database` returns max 100 rows** — Use `COUNT(*)`, `GROUP BY`, or `TOP N` to work within this limit. Check for `"truncated": true` in results.
-- **Extract only needed fields in scripts** — `log(JSON.stringify(fullResult))` can produce 700K+ characters. Select specific properties inside the script to keep output manageable.
+- **Extract only needed fields in scripts** — `console.log(JSON.stringify(fullResult))` can produce 700K+ characters. Select specific properties and `return` only what you need.
 
 ## Common Workflows
 
 **Failure investigation:**
-1. `execute_script`/`getJobRunRecord` with `IncludeAttemptLogs: true` — primary path for full failure details (exceptions, stack traces, script output). LogData is varbinary, not SQL-readable.
+1. `execute_script` → `await rl.publicApi.getJobRunRecord({ IncludeAttemptLogs: true })` — primary path for full failure details (exceptions, stack traces, script output). LogData is varbinary, not SQL-readable.
 2. Quick triage alternative: `query_database` on `ClientJobRunEvents` (JOIN on `ClientJobRunRecordId`, check `Type` column for event indicators).
 3. Use `FailCount`/`SuccessCount` on `JobRunRecords` for reliable aggregates — avoids decoding `Result` integer values on `ClientJobRunRecords`.
 
