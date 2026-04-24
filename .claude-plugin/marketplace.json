@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Official plugins for RemoteLink by Unwired Revolution",
-    "version": "1.0.0"
+    "version": "1.0.1"
   },
   "plugins": [
     {
       "name": "remotelink",
       "source": "./remotelink",
       "description": "Domain knowledge and MCP integration for RemoteLink, a script execution and endpoint management platform.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "author": {
         "name": "Unwired Revolution",
         "email": "info@unwiredremotelink.com"

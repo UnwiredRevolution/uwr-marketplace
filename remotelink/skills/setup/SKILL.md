@@ -11,7 +11,7 @@ description: >-
 
 # RemoteLink Setup
 
-Claude Code prompts for the RemoteLink Admin URL when the plugin is installed or enabled and stores it under `pluginConfigs.remotelink.options.remotelink_url` in `~/.claude/settings.json`. No shell variables are involved.
+Claude Code prompts for the RemoteLink Admin URL when the plugin is installed or enabled and stores it under `pluginConfigs["remotelink@uwr-marketplace"].options.remotelink_url` in `~/.claude/settings.json`. No shell variables are involved.
 
 ## Changing the URL
 

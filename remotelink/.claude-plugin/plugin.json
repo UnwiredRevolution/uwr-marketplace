@@ -1,6 +1,6 @@
 {
   "name": "remotelink",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Domain knowledge and MCP integration for RemoteLink, a script execution and endpoint management platform.",
   "author": {
     "name": "Unwired Revolution",
